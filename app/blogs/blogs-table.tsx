@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import {
   type ColumnDef,
@@ -36,62 +36,41 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 
-// Mock data for blogs
-const data = [
-  {
-    id: "1",
-    title: "Next.js 14 Features",
-    content: "Exploring the new features in Next.js 14...",
-    tags: ["Next.js", "React", "Web Development"],
-    image: "https://via.placeholder.com/300",
-    createdAt: "2023-10-15T12:00:00Z",
-  },
-  {
-    id: "2",
-    title: "Tailwind CSS Tips",
-    content: "Useful tips and tricks for Tailwind CSS...",
-    tags: ["CSS", "Tailwind", "Frontend"],
-    image: "https://via.placeholder.com/300",
-    createdAt: "2023-09-20T10:30:00Z",
-  },
-  {
-    id: "3",
-    title: "TypeScript Best Practices",
-    content: "Best practices for TypeScript development...",
-    tags: ["TypeScript", "JavaScript", "Programming"],
-    image: "https://via.placeholder.com/300",
-    createdAt: "2023-08-05T15:45:00Z",
-  },
-  {
-    id: "4",
-    title: "Building a Portfolio Website",
-    content: "Step-by-step guide to building a portfolio website...",
-    tags: ["Portfolio", "Web Design", "Career"],
-    image: "https://via.placeholder.com/300",
-    createdAt: "2023-07-12T09:15:00Z",
-  },
-  {
-    id: "5",
-    title: "Introduction to React Hooks",
-    content: "An introduction to React Hooks and how to use them...",
-    tags: ["React", "Hooks", "Frontend"],
-    image: "https://via.placeholder.com/300",
-    createdAt: "2023-06-28T14:20:00Z",
-  },
-]
+
 
 export function BlogsTable() {
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState({})
   const [deleteId, setDeleteId] = useState<string | null>(null)
+ const [blogs, setBlogs] = useState<any[]>([]);
+ useEffect(() => {
+   const fetchBlogs = async () => {
+     try {
+       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/blog`);
+       const data = await res.json();
+       console.log("data", data);
 
-  const columns: ColumnDef<(typeof data)[0]>[] = [
+       if (data.success && data.data) {
+         // Transform the API data to match our form schema if needed
+         setBlogs(data?.data);
+       } else {
+         setBlogs([]);
+       }
+     } catch (error) {
+       console.error("Error fetching blog:", error);
+       toast.error("An error occurred while fetching the blog");
+     }
+   };
+   fetchBlogs();
+ }, []);
+  const columns: ColumnDef<(typeof blogs)[0]>[] = [
     {
       accessorKey: "title",
       header: "Title",
-      cell: ({ row }) => <div className="font-medium">{row.getValue("title")}</div>,
+      cell: ({ row }) => <div className="font-medium line-clamp-1">{row.getValue("title")}</div>,
     },
     {
       accessorKey: "tags",
@@ -152,7 +131,7 @@ export function BlogsTable() {
   ]
 
   const table = useReactTable({
-    data,
+    data:blogs,
     columns,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
