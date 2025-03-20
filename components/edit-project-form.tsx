@@ -33,7 +33,7 @@ export function EditProjectForm({ id }: { id: string }) {
       try {
         setIsLoading(true);
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/project/${id}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/project/${id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -75,9 +75,9 @@ export function EditProjectForm({ id }: { id: string }) {
   const onSubmit = async (values: ProjectFormValues) => {
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/project/${id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/project/${id}`,
         {
-          method: "PUT",
+          method: "PATCH",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
