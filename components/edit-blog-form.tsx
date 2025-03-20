@@ -28,7 +28,7 @@ export function EditBlogForm({ id }: { id: string }) {
       try {
         setIsLoading(true);
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/blog/${id}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/blog/${id}`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem("token")}`,

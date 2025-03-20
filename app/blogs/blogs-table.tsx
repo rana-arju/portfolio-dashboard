@@ -37,6 +37,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+
 
 
 
@@ -45,6 +47,7 @@ export function BlogsTable() {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [rowSelection, setRowSelection] = useState({})
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const router = useRouter();
  const [blogs, setBlogs] = useState<any[]>([]);
  useEffect(() => {
    const fetchBlogs = async () => {
@@ -113,13 +116,13 @@ export function BlogsTable() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem asChild>
-                <Link href={`/blogs/${blog.id}`}>
+                <Link href={`/blogs/${blog._id}`}>
                   <Edit className="mr-2 h-4 w-4" />
                   Edit
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600" onClick={() => setDeleteId(blog.id)}>
+              <DropdownMenuItem className="text-red-600" onClick={() => setDeleteId(blog._id)}>
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
@@ -147,9 +150,35 @@ export function BlogsTable() {
     },
   })
 
-  const handleDelete = () => {
-    // Here you would call your API to delete the blog
-    console.log(`Deleting blog with ID: ${deleteId}`)
+  const handleDelete = async() => {
+ try {
+   const res = await fetch(
+     `${process.env.NEXT_PUBLIC_API_URL}/blog/${deleteId}`,
+     {
+       method: "DELETE",
+       headers: {
+         "Content-Type": "application/json",
+         Authorization: `Bearer ${localStorage.getItem("token")}`,
+       },
+     }
+   );
+
+   const data = await res.json();
+
+   if (data.success) {
+     toast.success(data.message || "Blog deleted successfully");
+     router.push("/blogs");
+     setBlogs((blogs) =>
+       blogs.filter((p) => p._id !== deleteId)
+     );
+   } else {
+     toast.error(data.message || "Failed to create Blog");
+   }
+ } catch (error) {
+   console.error("Error creating Blog:", error);
+   toast.error("An error occurred while creating the project");
+   throw error;
+ }
     setDeleteId(null)
   }
 
