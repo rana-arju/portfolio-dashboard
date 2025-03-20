@@ -1,38 +1,39 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Plus, X } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-
-// Mock project data for edit mode
-const mockProject = {
-  id: "1",
-  title: "E-commerce Platform",
-  images: ["https://via.placeholder.com/300"],
-  technologies: ["React", "Node.js", "MongoDB"],
-  frontend: "React, Redux, Tailwind CSS",
-  server: "Node.js, Express, MongoDB",
-  description:
-    "A full-featured e-commerce platform with user authentication, product management, cart functionality, and payment processing.",
-  live: "https://example.com",
-  deadline: "2023-12-31",
-  priority: "high",
-}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { uploadToCloudinary } from "@/lib/cloudinary";
 
 // Form schema
-const formSchema = z.object({
+export const projectSchema = z.object({
   title: z.string().min(2, {
     message: "Title must be at least 2 characters.",
   }),
@@ -54,86 +55,97 @@ const formSchema = z.object({
     .or(z.literal("")),
   deadline: z.string().optional(),
   priority: z.enum(["low", "medium", "high"]),
-})
+});
 
-type ProjectFormValues = z.infer<typeof formSchema>
+export type ProjectFormValues = z.infer<typeof projectSchema>;
 
-export function ProjectForm({ id }: { id: string | null }) {
-  const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [newTech, setNewTech] = useState("")
+interface ProjectFormBaseProps {
+  defaultValues: ProjectFormValues;
+  onSubmit: (values: ProjectFormValues) => Promise<void>;
+  submitButtonText: string;
+}
 
-  // For edit mode, use the mock data
-  const defaultValues = id
-    ? mockProject
-    : {
-        title: "",
-        images: [],
-        technologies: [],
-        frontend: "",
-        server: "",
-        description: "",
-        live: "",
-        deadline: "",
-        priority: "medium",
-      }
+export function ProjectFormBase({
+  defaultValues,
+  onSubmit,
+  submitButtonText,
+}: ProjectFormBaseProps) {
+  const router = useRouter();
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newTech, setNewTech] = useState("");
 
   const form = useForm<ProjectFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(projectSchema),
     defaultValues,
-  })
+  });
 
-  async function onSubmit(values: ProjectFormValues) {
-    setIsSubmitting(true)
+  async function handleSubmit(values: ProjectFormValues) {
+    setIsSubmitting(true);
 
     try {
-      // Here you would call your API to save the project
-      console.log(values)
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      router.push("/projects")
-      router.refresh()
+      await onSubmit(values);
     } catch (error) {
-      console.error("Error saving project:", error)
+      console.error("Error saving project:", error);
+      toast.error("Failed to save project");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   const handleAddTechnology = () => {
-    if (newTech.trim() && !form.getValues().technologies.includes(newTech.trim())) {
-      form.setValue("technologies", [...form.getValues().technologies, newTech.trim()])
-      setNewTech("")
+    if (
+      newTech.trim() &&
+      !form.getValues().technologies.includes(newTech.trim())
+    ) {
+      form.setValue("technologies", [
+        ...form.getValues().technologies,
+        newTech.trim(),
+      ]);
+      setNewTech("");
     }
-  }
+  };
 
   const handleRemoveTechnology = (tech: string) => {
     form.setValue(
       "technologies",
-      form.getValues().technologies.filter((t) => t !== tech),
-    )
-  }
+      form.getValues().technologies.filter((t) => t !== tech)
+    );
+  };
 
-  const handleAddImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // In a real app, you would upload the image to a server and get a URL
-    // For this example, we'll just use a placeholder
-    form.setValue("images", [...form.getValues().images, "https://via.placeholder.com/300"])
-  }
+  const handleAddImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const imageUrl = await uploadToCloudinary(file);
+      console.log("Image URL:", imageUrl);
+
+      form.setValue("images", [...form.getValues().images, imageUrl]);
+      toast.success("Portfolio image upload successful");
+    } catch (error) {
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleRemoveImage = (index: number) => {
     form.setValue(
       "images",
-      form.getValues().images.filter((_, i) => i !== index),
-    )
-  }
+      form.getValues().images.filter((_, i) => i !== index)
+    );
+  };
 
   return (
     <Card>
       <CardContent className="pt-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-8"
+          >
             <div className="grid gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -155,7 +167,10 @@ export function ProjectForm({ id }: { id: string | null }) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Priority</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select priority" />
@@ -181,9 +196,11 @@ export function ProjectForm({ id }: { id: string | null }) {
                   <FormItem>
                     <FormLabel>Frontend</FormLabel>
                     <FormControl>
-                      <Input placeholder="Frontend technologies" {...field} />
+                      <Input placeholder="Frontend github link" {...field} />
                     </FormControl>
-                    <FormDescription>Comma-separated list of frontend technologies</FormDescription>
+                    <FormDescription>
+                      Enter frontend github link
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -194,11 +211,11 @@ export function ProjectForm({ id }: { id: string | null }) {
                 name="server"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Server</FormLabel>
+                    <FormLabel>Backend</FormLabel>
                     <FormControl>
-                      <Input placeholder="Server technologies" {...field} />
+                      <Input placeholder="Backend github link" {...field} />
                     </FormControl>
-                    <FormDescription>Comma-separated list of server technologies</FormDescription>
+                    <FormDescription>Enter backend github link</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -212,7 +229,11 @@ export function ProjectForm({ id }: { id: string | null }) {
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Project description" className="min-h-32" {...field} />
+                    <Textarea
+                      placeholder="Project description"
+                      className="min-h-32"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -279,12 +300,17 @@ export function ProjectForm({ id }: { id: string | null }) {
                       onChange={(e) => setNewTech(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          e.preventDefault()
-                          handleAddTechnology()
+                          e.preventDefault();
+                          handleAddTechnology();
                         }
                       }}
                     />
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddTechnology}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddTechnology}
+                    >
                       <Plus className="h-4 w-4 mr-1" />
                       Add
                     </Button>
@@ -302,9 +328,14 @@ export function ProjectForm({ id }: { id: string | null }) {
                   <FormLabel>Images</FormLabel>
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
                     {field.value.map((image, index) => (
-                      <div key={index} className="relative rounded-md overflow-hidden aspect-video">
+                      <div
+                        key={index}
+                        className="relative rounded-md overflow-hidden aspect-video"
+                      >
                         <img
-                          src={image || "/placeholder.svg"}
+                          src={
+                            form.watch("images")[index] || "/placeholder.svg"
+                          }
                           alt={`Project image ${index + 1}`}
                           className="object-cover w-full h-full"
                         />
@@ -322,9 +353,23 @@ export function ProjectForm({ id }: { id: string | null }) {
                     ))}
                     <div className="border border-dashed rounded-md flex items-center justify-center aspect-video">
                       <label className="cursor-pointer flex flex-col items-center justify-center w-full h-full">
-                        <Plus className="h-6 w-6 mb-2 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Add Image</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={handleAddImage} />
+                        {isUploading ? (
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        ) : (
+                          <>
+                            <Plus className="h-6 w-6 mb-2 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                              Add Image
+                            </span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAddImage}
+                          disabled={isUploading}
+                        />
                       </label>
                     </div>
                   </div>
@@ -334,18 +379,23 @@ export function ProjectForm({ id }: { id: string | null }) {
             />
 
             <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" onClick={() => router.push("/projects")}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push("/projects")}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {id ? "Update Project" : "Create Project"}
+              <Button type="submit" disabled={isSubmitting || isUploading}>
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {submitButtonText}
               </Button>
             </div>
           </form>
         </Form>
       </CardContent>
     </Card>
-  )
+  );
 }
-

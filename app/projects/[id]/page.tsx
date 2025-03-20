@@ -1,20 +1,20 @@
-import { ProjectForm } from "../project-form"
+import { EditProjectForm } from "@/components/edit-project-form";
 
-export default async function ProjectPage({ params }: { params: { id: string } }) {
-    const { id } = await params;
-  const isNew = id === "new"
 
+export default async function EditProjectPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const { id } = await params;
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pt-2 md:pt-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{isNew ? "Add New Project" : "Edit Project"}</h1>
-        <p className="text-muted-foreground">
-          {isNew ? "Create a new portfolio project" : "Update your portfolio project"}
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">Edit Project</h1>
+        <p className="text-muted-foreground">Update your portfolio project</p>
       </div>
 
-      <ProjectForm id={isNew ? null : id} />
+      <EditProjectForm id={id} />
     </div>
-  )
+  );
 }
-

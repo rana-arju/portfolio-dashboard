@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Sidebar } from "@/components/sidebar";
 import { MobileHeader } from "@/components/mobile-header";
+import { Toaster } from "sonner";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -24,7 +25,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
@@ -44,6 +45,7 @@ export default function RootLayout({
               <main className="p-4 md:p-6">{children}</main>
             </div>
           </div>
+          <Toaster richColors position="top-center" />
         </ThemeProvider>
       </body>
     </html>
