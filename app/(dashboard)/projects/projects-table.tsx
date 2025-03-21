@@ -70,7 +70,7 @@ export function ProjectsTable() {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/project`);
         const data = await res.json();
-        console.log("data", data);
+
 
         if (data.success && data.data) {
           // Transform the API data to match our form schema if needed

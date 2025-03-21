@@ -1,204 +1,381 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Loader2, Plus } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Checkbox } from "@/components/ui/checkbox"
-
-// Mock data for skills
-const skillCategories = [
-  {
-    name: "Frontend",
-    skills: [
-      { id: "1", name: "React", selected: true },
-      { id: "2", name: "Vue.js", selected: false },
-      { id: "3", name: "Angular", selected: false },
-      { id: "4", name: "Next.js", selected: true },
-      { id: "5", name: "Tailwind CSS", selected: true },
-      { id: "6", name: "CSS", selected: true },
-      { id: "7", name: "HTML", selected: true },
-      { id: "8", name: "JavaScript", selected: true },
-      { id: "9", name: "TypeScript", selected: true },
-    ],
-  },
-  {
-    name: "Backend",
-    skills: [
-      { id: "10", name: "Node.js", selected: true },
-      { id: "11", name: "Express", selected: true },
-      { id: "12", name: "Django", selected: false },
-      { id: "13", name: "Flask", selected: false },
-      { id: "14", name: "Ruby on Rails", selected: false },
-      { id: "15", name: "PHP", selected: false },
-    ],
-  },
-  {
-    name: "Database",
-    skills: [
-      { id: "16", name: "MongoDB", selected: true },
-      { id: "17", name: "MySQL", selected: true },
-      { id: "18", name: "PostgreSQL", selected: false },
-      { id: "19", name: "Firebase", selected: true },
-      { id: "20", name: "Redis", selected: false },
-    ],
-  },
-  {
-    name: "DevOps",
-    skills: [
-      { id: "21", name: "Docker", selected: true },
-      { id: "22", name: "Kubernetes", selected: false },
-      { id: "23", name: "AWS", selected: true },
-      { id: "24", name: "GCP", selected: false },
-      { id: "25", name: "Azure", selected: false },
-      { id: "26", name: "CI/CD", selected: true },
-    ],
-  },
-]
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Loader2, Plus, X } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { log } from "console";
 
 export function SkillsManager() {
-  const [categories, setCategories] = useState(skillCategories)
-  const [newSkill, setNewSkill] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState(categories[0].name)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [skills, setSkills] = useState<string[]>([]);
+  const [skillId, setSkillId] = useState<string>("");
+  const [newSkill, setNewSkill] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deleteSkill, setDeleteSkill] = useState<string | null>(null);
+  const [editSkill, setEditSkill] = useState<{
+    original: string;
+    updated: string;
+  } | null>(null);
 
-  const handleToggleSkill = (categoryName: string, skillId: string) => {
-    setCategories(
-      categories.map((category) => {
-        if (category.name === categoryName) {
-          return {
-            ...category,
-            skills: category.skills.map((skill) => {
-              if (skill.id === skillId) {
-                return { ...skill, selected: !skill.selected }
-              }
-              return skill
-            }),
-          }
+  // Fetch skills from API
+  useEffect(() => {
+    const fetchSkills = async () => {
+      try {
+        setIsLoading(true);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/skill`);
+
+        const response = await res.json();
+
+        if (response.success) {
+          setSkills(response.data[0].skills || []);
+          setSkillId(response.data[0]._id);
+        } else {
+          setError(response.message || "Failed to fetch skills");
+          toast.error(response.message || "Failed to fetch skills");
         }
-        return category
-      }),
-    )
-  }
+      } catch (error: any) {
+        console.error("Error fetching skills:", error);
+        setError(error.message || "An error occurred while fetching skills");
+        toast.error(error.message || "An error occurred while fetching skills");
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleAddSkill = () => {
-    if (newSkill.trim()) {
-      setCategories(
-        categories.map((category) => {
-          if (category.name === selectedCategory) {
-            return {
-              ...category,
-              skills: [
-                ...category.skills,
-                {
-                  id: `new-${Date.now()}`,
-                  name: newSkill.trim(),
-                  selected: true,
-                },
-              ],
-            }
-          }
-          return category
-        }),
-      )
-      setNewSkill("")
+    fetchSkills();
+  }, []);
+
+  // Add a new skill
+  const handleAddSkill = async () => {
+    if (!newSkill.trim()) return;
+
+    // Check if skill already exists
+    if (skills?.includes(newSkill.trim())) {
+      toast.error("This skill already exists");
+      return;
     }
-  }
-
-  const handleSaveChanges = async () => {
-    setIsSubmitting(true)
 
     try {
-      // Here you would call your API to save the skills
-      console.log(categories)
+      setIsSubmitting(true);
+      // Add to local array first
+      const updatedSkills = [...skills, newSkill.trim()];
+    
+           const res = await fetch(
+             `${process.env.NEXT_PUBLIC_API_URL}/skill/${skillId}`,
+             {
+               method: "PUT",
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    } catch (error) {
-      console.error("Error saving skills:", error)
+               headers: {
+                 Authorization: `Bearer ${localStorage.getItem("token")}`,
+                 "Content-Type": "application/json",
+               },
+               body: JSON.stringify({ skills: updatedSkills }),
+             }
+           );
+           const response = await res.json();
+
+           if (response.success) {
+             setSkills(response.data.skills);
+             setNewSkill("");
+             toast.success("Skill added successfully");
+           } else {
+             toast.error(response.message || "Failed to add skill");
+           }
+    } catch (error: any) {
+      console.error("Error adding skill:", error);
+      toast.error(error.message || "An error occurred while adding the skill");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
+  };
+
+  // Delete a skill
+  const handleDeleteConfirm = async () => {
+    if (!deleteSkill) return;
+
+    try {
+      setIsSubmitting(true);
+      // Remove from local array first
+      const updatedSkills = skills.filter((skill) => skill !== deleteSkill);
+
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/skill/${skillId}`, {
+        method: "PUT",
+
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ skills: updatedSkills }),
+      });
+      const response = await res.json();
+
+      if (response.success) {
+        setSkills(response.data.skills);
+        toast.success("Skill deleted successfully");
+      } else {
+        toast.error(response.message || "Failed to delete skill");
+      }
+    } catch (error: any) {
+      console.error("Error deleting skill:", error);
+      toast.error(
+        error.message || "An error occurred while deleting the skill"
+      );
+    } finally {
+      setIsSubmitting(false);
+      setDeleteSkill(null);
+    }
+  };
+
+  // Update a skill
+  const handleUpdateSkill = async () => {
+    if (!editSkill || !editSkill.updated.trim()) return;
+
+    // Check if skill already exists
+    if (
+      editSkill.original !== editSkill.updated &&
+      skills.includes(editSkill.updated.trim())
+    ) {
+      toast.error("This skill already exists");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      // Update in local array first
+      const updatedSkills = skills.map((skill) =>
+        skill === editSkill.original ? editSkill.updated.trim() : skill
+      );
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/skill/${skillId}`, {
+        method: "PUT",
+
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ skills: updatedSkills }),
+      });
+      const response = await res.json();
+
+      if (response.success) {
+        setSkills(response.data.skills);
+        toast.success("Skill updated successfully");
+      } else {
+        toast.error(response.message || "Failed to update skill");
+      }
+    } catch (error: any) {
+      console.error("Error updating skill:", error);
+      toast.error(
+        error.message || "An error occurred while updating the skill"
+      );
+    } finally {
+      setIsSubmitting(false);
+      setEditSkill(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full max-w-sm" />
+        <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+      </div>
+    );
   }
 
-  const selectedSkills = categories.flatMap((category) => category.skills.filter((skill) => skill.selected))
+  if (error) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button onClick={() => window.location.reload()}>Retry</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4">
-        <h3 className="text-lg font-medium">Selected Skills</h3>
-        <div className="flex flex-wrap gap-2">
-          {selectedSkills.length > 0 ? (
-            selectedSkills.map((skill) => (
-              <Badge key={skill.id} variant="secondary" className="text-sm">
-                {skill.name}
-              </Badge>
-            ))
-          ) : (
-            <p className="text-muted-foreground">No skills selected</p>
-          )}
-        </div>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Manage Skills</CardTitle>
+          <CardDescription>
+            Add, edit, or remove skills from your portfolio
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-2 mb-6">
+            <Input
+              placeholder="Add new skill..."
+              value={newSkill}
+              onChange={(e) => setNewSkill(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddSkill();
+                }
+              }}
+              disabled={isSubmitting}
+            />
+            <Button
+              onClick={handleAddSkill}
+              disabled={isSubmitting || !newSkill.trim()}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
+              Add
+            </Button>
+          </div>
 
-      <div className="border-t pt-6">
-        <Tabs defaultValue={categories[0].name}>
-          <TabsList className="mb-4 flex flex-wrap">
-            {categories.map((category) => (
-              <TabsTrigger key={category.name} value={category.name} onClick={() => setSelectedCategory(category.name)}>
-                {category.name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {categories.map((category) => (
-            <TabsContent key={category.name} value={category.name} className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  placeholder={`Add new ${category.name} skill`}
-                  value={newSkill}
-                  onChange={(e) => setNewSkill(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault()
-                      handleAddSkill()
+          <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 md:grid-cols-4">
+            {skills?.map((skill) => (
+              <div
+                key={skill}
+                className="flex items-center justify-between rounded-md border p-3 bg-card"
+              >
+                <span className="font-medium truncate">{skill}</span>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() =>
+                      setEditSkill({ original: skill, updated: skill })
                     }
-                  }}
-                />
-                <Button type="button" variant="outline" onClick={handleAddSkill}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
+                    disabled={isSubmitting}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-pencil"
+                    >
+                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                      <path d="m15 5 4 4" />
+                    </svg>
+                    <span className="sr-only">Edit {skill}</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-100"
+                    onClick={() => setDeleteSkill(skill)}
+                    disabled={isSubmitting}
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Delete {skill}</span>
+                  </Button>
+                </div>
               </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
-              <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                {category.skills.map((skill) => (
-                  <div key={skill.id} className="flex items-center space-x-2 rounded-md border p-3">
-                    <Checkbox
-                      id={skill.id}
-                      checked={skill.selected}
-                      onCheckedChange={() => handleToggleSkill(category.name, skill.id)}
-                    />
-                    <Label htmlFor={skill.id} className="flex-1 cursor-pointer">
-                      {skill.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
-      </div>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteSkill}
+        onOpenChange={(open) => !open && setDeleteSkill(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove the skill "{deleteSkill}" from your portfolio.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isSubmitting}
+            >
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      <div className="flex justify-end">
-        <Button onClick={handleSaveChanges} disabled={isSubmitting}>
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Changes
-        </Button>
-      </div>
+      {/* Edit Skill Dialog */}
+      <AlertDialog
+        open={!!editSkill}
+        onOpenChange={(open) => !open && setEditSkill(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Skill</AlertDialogTitle>
+            <AlertDialogDescription>
+              Update the skill name below.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Input
+              value={editSkill?.updated || ""}
+              onChange={(e) =>
+                setEditSkill((prev) =>
+                  prev ? { ...prev, updated: e.target.value } : null
+                )
+              }
+              placeholder="Skill name"
+              className="mb-2"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUpdateSkill}
+              disabled={isSubmitting || !editSkill?.updated.trim()}
+            >
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Save Changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-  )
+  );
 }
-

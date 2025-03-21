@@ -97,7 +97,7 @@ export function BlogFormBase({
     try {
       setIsUploading(true);
       const imageUrl = await uploadToCloudinary(file);
-      console.log("Image URL:", imageUrl);
+  
 
       form.setValue("image", imageUrl);
       toast.success("Featured image upload successful");

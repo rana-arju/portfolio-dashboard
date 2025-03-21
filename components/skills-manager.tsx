@@ -83,7 +83,7 @@ export function SkillsManager() {
     try {
       setIsSubmitting(true);
       const updatedSkills = [...skills, newSkill.trim()];
-console.log("updatedSkills", updatedSkills);
+
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/skills`,
@@ -113,7 +113,7 @@ console.log("updatedSkills", updatedSkills);
       setIsSubmitting(false);
     }
   };
-console.log("new skill", newSkill);
+
 
   // Delete a skill
   const handleDeleteConfirm = async () => {
@@ -170,7 +170,7 @@ console.log("new skill", newSkill);
       const updatedSkills = skills.map((skill) =>
         skill === editSkill.original ? editSkill.updated.trim() : skill
       );
-console.log("updatedSkills 2", updatedSkills);
+
 
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/skills`,

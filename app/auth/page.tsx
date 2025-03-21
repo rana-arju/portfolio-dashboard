@@ -60,7 +60,7 @@ export default function SignInForm() {
 
       if (result.ok) {
         const data = await result.json();
-        console.log("data", data.data.accessToken);
+       
         Cookies.set("token", data.data.accessToken, {
           expires: 7, // 7 days
           secure: true,

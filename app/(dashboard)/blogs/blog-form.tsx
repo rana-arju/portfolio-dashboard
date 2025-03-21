@@ -67,7 +67,7 @@ export function BlogForm({ id }: { id: string | null }) {
 
     try {
       // Here you would call your API to save the blog
-      console.log(values)
+    
 
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000))

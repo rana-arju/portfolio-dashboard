@@ -7,11 +7,44 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // This function maps skill names to their image paths
 const skillsImage = (skill: string) => {
-  const skillID = skill.toLowerCase();
-  // This is a simplified version - you would need to implement the full mapping
-  // based on your available skill images
+  const skillID = skill.toLowerCase().replace(/\s+/g, "-");
+
+  // Map of known skills to their image paths
+  const skillMap: Record<string, string> = {
+    javascript: "/skills/javascript.svg",
+    typescript: "/skills/typescript.svg",
+    react: "/skills/react.svg",
+    "next.js": "/skills/nextjs.svg",
+    "next js": "/skills/nextjs.svg",
+    redux: "/skills/redux.svg",
+    prisma: "/skills/prisma.svg",
+    mongodb: "/skills/mongodb.svg",
+    mysql: "/skills/mysql.svg",
+    postgresql: "/skills/postgresql.svg",
+    git: "/skills/git.svg",
+    tailwind: "/skills/tailwind.svg",
+    bootstrap: "/skills/bootstrap.svg",
+    figma: "/skills/figma.svg",
+    firebase: "/skills/firebase.svg",
+    materialui: "/skills/materialui.svg",
+    "material-ui": "/skills/materialui.svg",
+    html: "/skills/html.svg",
+    css: "/skills/css.svg",
+    "node.js": "/skills/nodejs.svg",
+    "node js": "/skills/nodejs.svg",
+    "express.js": "/skills/express.svg",
+    "express js": "/skills/express.svg",
+    graphql: "/skills/graphql.svg",
+    docker: "/skills/docker.svg",
+    aws: "/skills/aws.svg",
+    vercel: "/skills/vercel.svg",
+    netlify: "/skills/netlify.svg",
+  };
+
   return {
-    src: `/skills/${skillID}.svg`,
+    src:
+      skillMap[skillID] ||
+      `/placeholder.svg?height=40&width=40&text=${encodeURIComponent(skill)}`,
   };
 };
 
@@ -24,25 +57,20 @@ export function SkillsMarquee() {
     const fetchSkills = async () => {
       try {
         setIsLoading(true);
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/skills`,
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-          }
-        );
-
-        const data = await res.json();
-
-        if (data.success && data.data) {
-          setSkills(data.data.skills || []);
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/skills`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        const response = await res.json();
+        if (response.success) {
+          setSkills(response.data.skills || []);
         } else {
-          setError(data.message || "Failed to fetch skills");
+          setError(response.message || "Failed to fetch skills");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching skills:", error);
-        setError("An error occurred while fetching skills");
+        setError(error.message || "An error occurred while fetching skills");
       } finally {
         setIsLoading(false);
       }
@@ -98,7 +126,7 @@ export function SkillsMarquee() {
               <div className="flex flex-col items-center justify-center gap-3 p-6">
                 <div className="h-8 sm:h-10">
                   <Image
-                    src={skillsImage(skill)?.src || "/placeholder.svg"}
+                    src={skillsImage(skill).src || "/placeholder.svg"}
                     alt={skill}
                     width={40}
                     height={40}

@@ -120,7 +120,7 @@ export function ProjectFormBase({
     try {
       setIsUploading(true);
       const imageUrl = await uploadToCloudinary(file);
-      console.log("Image URL:", imageUrl);
+
 
       form.setValue("images", [...form.getValues().images, imageUrl]);
       toast.success("Portfolio image upload successful");
