@@ -7,8 +7,11 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, FileText, FolderKanban, Briefcase } from "lucide-react";
+import { redirect } from "next/navigation";
 
 export default function Dashboard() {
+  // Redirect to dashboard
+  redirect("/dashboard");
   return (
     <div className="flex flex-col gap-6 pt-2 md:pt-0">
       <div>

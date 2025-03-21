@@ -1,18 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navItems } from "@/lib/constants";
+import { useAuth } from "@/lib/auth/auth-context";
 
 export function MobileHeader() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-
+const { logout, user } = useAuth();
   // Handle hydration mismatch
   useEffect(() => {
     setIsMounted(true);
@@ -80,6 +81,29 @@ export function MobileHeader() {
             </Link>
           ))}
         </nav>
+        <div className="p-4 mt-auto border-t">
+          <div className="flex items-center gap-3 mb-4 px-2">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <User className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">
+                {user?.name || "Admin User"}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email || "admin@example.com"}
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            className="w-full justify-start gap-2"
+            onClick={logout}
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
+        </div>
       </div>
 
       {/* Mobile backdrop */}

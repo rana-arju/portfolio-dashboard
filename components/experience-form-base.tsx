@@ -1,31 +1,28 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm } from "react-hook-form"
-import { z } from "zod"
-import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
-import { Loader2, Plus, X } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-
-// Mock experience data for edit mode
-const mockExperience = {
-  id: "1",
-  title: "Senior Frontend Developer",
-  company: "Tech Solutions Inc.",
-  location: "San Francisco, CA",
-  period: "Jan 2021 - Present",
-  technologies: ["React", "TypeScript", "Next.js", "Tailwind CSS"],
-  description: ["Led the frontend team in developing a new e-commerce platform", "Improved site performance by 40%"],
-}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Plus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 // Form schema
-const formSchema = z.object({
+export const experienceSchema = z.object({
   title: z.string().min(2, {
     message: "Title must be at least 2 characters.",
   }),
@@ -44,85 +41,89 @@ const formSchema = z.object({
   description: z.array(z.string()).min(1, {
     message: "At least one description item is required.",
   }),
-})
+});
 
-type ExperienceFormValues = z.infer<typeof formSchema>
+export type ExperienceFormValues = z.infer<typeof experienceSchema>;
 
-export function ExperienceForm({ id }: { id: string | null }) {
-  const router = useRouter()
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [newTech, setNewTech] = useState("")
-  const [newDescription, setNewDescription] = useState("")
+interface ExperienceFormBaseProps {
+  defaultValues: ExperienceFormValues;
+  onSubmit: (values: ExperienceFormValues) => Promise<void>;
+  submitButtonText: string;
+}
 
-  // For edit mode, use the mock data
-  const defaultValues = id
-    ? mockExperience
-    : {
-        title: "",
-        company: "",
-        location: "",
-        period: "",
-        technologies: [],
-        description: [],
-      }
+export function ExperienceFormBase({
+  defaultValues,
+  onSubmit,
+  submitButtonText,
+}: ExperienceFormBaseProps) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [newTech, setNewTech] = useState("");
+  const [newDescription, setNewDescription] = useState("");
 
   const form = useForm<ExperienceFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(experienceSchema),
     defaultValues,
-  })
+  });
 
-  async function onSubmit(values: ExperienceFormValues) {
-    setIsSubmitting(true)
+  async function handleSubmit(values: ExperienceFormValues) {
+    setIsSubmitting(true);
 
     try {
-      // Here you would call your API to save the experience
-      console.log(values)
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      router.push("/experience")
-      router.refresh()
+      await onSubmit(values);
     } catch (error) {
-      console.error("Error saving experience:", error)
+      console.error("Error saving experience:", error);
+      toast.error("Failed to save experience");
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
   }
 
   const handleAddTechnology = () => {
-    if (newTech.trim() && !form.getValues().technologies.includes(newTech.trim())) {
-      form.setValue("technologies", [...form.getValues().technologies, newTech.trim()])
-      setNewTech("")
+    if (
+      newTech.trim() &&
+      !form.getValues().technologies.includes(newTech.trim())
+    ) {
+      form.setValue("technologies", [
+        ...form.getValues().technologies,
+        newTech.trim(),
+      ]);
+      setNewTech("");
     }
-  }
+  };
 
   const handleRemoveTechnology = (tech: string) => {
     form.setValue(
       "technologies",
-      form.getValues().technologies.filter((t) => t !== tech),
-    )
-  }
+      form.getValues().technologies.filter((t) => t !== tech)
+    );
+  };
 
   const handleAddDescription = () => {
     if (newDescription.trim()) {
-      form.setValue("description", [...form.getValues().description, newDescription.trim()])
-      setNewDescription("")
+      form.setValue("description", [
+        ...form.getValues().description,
+        newDescription.trim(),
+      ]);
+      setNewDescription("");
     }
-  }
+  };
 
   const handleRemoveDescription = (index: number) => {
     form.setValue(
       "description",
-      form.getValues().description.filter((_, i) => i !== index),
-    )
-  }
+      form.getValues().description.filter((_, i) => i !== index)
+    );
+  };
 
   return (
     <Card>
       <CardContent className="pt-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-8"
+          >
             <div className="grid gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -213,12 +214,17 @@ export function ExperienceForm({ id }: { id: string | null }) {
                       onChange={(e) => setNewTech(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          e.preventDefault()
-                          handleAddTechnology()
+                          e.preventDefault();
+                          handleAddTechnology();
                         }
                       }}
                     />
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddTechnology}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddTechnology}
+                    >
                       <Plus className="h-4 w-4 mr-1" />
                       Add
                     </Button>
@@ -237,7 +243,9 @@ export function ExperienceForm({ id }: { id: string | null }) {
                   <div className="space-y-2 mb-2">
                     {field.value.map((desc, index) => (
                       <div key={index} className="flex items-center gap-2">
-                        <div className="flex-1 rounded-md border p-3">{desc}</div>
+                        <div className="flex-1 rounded-md border p-3">
+                          {desc}
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
@@ -258,13 +266,18 @@ export function ExperienceForm({ id }: { id: string | null }) {
                       onChange={(e) => setNewDescription(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && e.ctrlKey) {
-                          e.preventDefault()
-                          handleAddDescription()
+                          e.preventDefault();
+                          handleAddDescription();
                         }
                       }}
                     />
                     <div className="flex justify-end">
-                      <Button type="button" variant="outline" size="sm" onClick={handleAddDescription}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAddDescription}
+                      >
                         <Plus className="h-4 w-4 mr-1" />
                         Add Description Point
                       </Button>
@@ -276,18 +289,23 @@ export function ExperienceForm({ id }: { id: string | null }) {
             />
 
             <div className="flex justify-end gap-4">
-              <Button type="button" variant="outline" onClick={() => router.push("/experience")}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push("/experience")}
+              >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {id ? "Update Experience" : "Add Experience"}
+                {isSubmitting && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {submitButtonText}
               </Button>
             </div>
           </form>
         </Form>
       </CardContent>
     </Card>
-  )
+  );
 }
-
